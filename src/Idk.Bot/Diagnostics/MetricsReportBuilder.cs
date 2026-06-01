@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Idk.Bot.Diagnostics;
 
 public sealed class MetricsReportBuilder
@@ -13,6 +15,8 @@ public sealed class MetricsReportBuilder
         if (covered <= TimeSpan.Zero)
             return CreateFailure(server, range, "Metric history has no elapsed time.");
 
+        var serverAreas = BuildTimedAreas(first, last, covered, "robust_server_update_usage", "area", 10);
+
         return new MetricsReport(
             server,
             true,
@@ -22,9 +26,10 @@ public sealed class MetricsReportBuilder
             snapshots.Count,
             first.CapturedAt,
             last.CapturedAt,
+            BuildServerSummary(first, last, covered, serverAreas),
             BuildGauges(last),
             BuildNetwork(first, last, covered),
-            BuildTimedAreas(first, last, covered, "robust_server_update_usage", "area", 10),
+            serverAreas,
             BuildTimedAreas(first, last, covered, "robust_entity_systems_update_usage", "system", 12),
             BuildTimedAreas(first, last, covered, "robust_game_state_update_usage", "area", 8),
             BuildPhysicsControllers(first, last, covered));
@@ -41,12 +46,36 @@ public sealed class MetricsReportBuilder
             0,
             DateTimeOffset.MinValue,
             DateTimeOffset.MinValue,
+            new MetricsServerSummary(null, null, null, null, null),
             new MetricsGaugeSummary(null, null, null, null, null),
             new MetricsNetworkSummary(null, null, null, null, null, null, null, null, null),
             [],
             [],
             [],
             []);
+    }
+
+    private static MetricsServerSummary BuildServerSummary(
+        MetricsSnapshot first,
+        MetricsSnapshot last,
+        TimeSpan covered,
+        IReadOnlyList<MetricsTimedArea> serverAreas)
+    {
+        var tickRate = CounterRate(first, last, covered, "robust_server_curtick");
+        if (tickRate is <= 0)
+            tickRate = null;
+
+        var mainLoopMillisecondsPerSecond = serverAreas.Sum(area => area.MillisecondsPerSecond);
+        double? mainLoopAverageMilliseconds = tickRate == null
+            ? null
+            : mainLoopMillisecondsPerSecond / tickRate.Value;
+
+        return new MetricsServerSummary(
+            tickRate,
+            mainLoopMillisecondsPerSecond,
+            mainLoopAverageMilliseconds,
+            MaxOrNull(serverAreas.Select(area => area.P95Milliseconds)),
+            MaxOrNull(serverAreas.Select(area => area.P99Milliseconds)));
     }
 
     private static MetricsGaugeSummary BuildGauges(MetricsSnapshot latest)
@@ -105,7 +134,9 @@ public sealed class MetricsReportBuilder
                 area,
                 deltaSum.Value / covered.TotalSeconds * 1000,
                 deltaSum.Value / deltaCount.Value * 1000,
-                deltaCount.Value / covered.TotalSeconds));
+                deltaCount.Value / covered.TotalSeconds,
+                BuildHistogramQuantile(first, last, histogramName, lastSum.Labels, 0.95),
+                BuildHistogramQuantile(first, last, histogramName, lastSum.Labels, 0.99)));
         }
 
         return areas
@@ -151,6 +182,75 @@ public sealed class MetricsReportBuilder
         }
     }
 
+    private static double? BuildHistogramQuantile(
+        MetricsSnapshot first,
+        MetricsSnapshot last,
+        string histogramName,
+        IReadOnlyDictionary<string, string> labels,
+        double quantile)
+    {
+        var bucketName = histogramName + "_bucket";
+        var buckets = new List<(double Bound, double Count)>();
+
+        foreach (var lastBucket in last.Samples.Values.Where(sample => sample.Name == bucketName))
+        {
+            if (!LabelsMatchExceptLe(lastBucket.Labels, labels) ||
+                !lastBucket.Labels.TryGetValue("le", out var le) ||
+                !TryParseBucketBound(le, out var bound))
+            {
+                continue;
+            }
+
+            var firstBucket = FindMatching(first, lastBucket);
+            if (firstBucket == null)
+                continue;
+
+            var delta = CounterDelta(firstBucket.Value, lastBucket.Value);
+            if (delta == null)
+                continue;
+
+            buckets.Add((bound, delta.Value));
+        }
+
+        if (buckets.Count == 0)
+            return null;
+
+        buckets.Sort((left, right) => left.Bound.CompareTo(right.Bound));
+        var total = buckets.LastOrDefault(bucket => double.IsPositiveInfinity(bucket.Bound)).Count;
+        if (total <= 0)
+            total = buckets[^1].Count;
+
+        if (total <= 0)
+            return null;
+
+        var rank = total * quantile;
+        var previousBound = 0d;
+        var previousCount = 0d;
+
+        foreach (var bucket in buckets)
+        {
+            var count = Math.Max(bucket.Count, previousCount);
+            if (count < rank)
+            {
+                previousBound = bucket.Bound;
+                previousCount = count;
+                continue;
+            }
+
+            if (double.IsPositiveInfinity(bucket.Bound))
+                return double.IsPositiveInfinity(previousBound) ? null : previousBound * 1000;
+
+            if (count <= previousCount)
+                return bucket.Bound * 1000;
+
+            var position = (rank - previousCount) / (count - previousCount);
+            return (previousBound + (bucket.Bound - previousBound) * position) * 1000;
+        }
+
+        var lastFinite = buckets.LastOrDefault(bucket => !double.IsPositiveInfinity(bucket.Bound)).Bound;
+        return lastFinite > 0 ? lastFinite * 1000 : null;
+    }
+
     private static PrometheusMetricSample? FindMatching(MetricsSnapshot snapshot, PrometheusMetricSample sample)
     {
         return snapshot.Samples.TryGetValue(sample.Identity, out var found) ? found : null;
@@ -167,6 +267,37 @@ public sealed class MetricsReportBuilder
 
         var identity = new PrometheusMetricIdentity(name, labelsKey);
         return snapshot.Samples.TryGetValue(identity, out var sample) ? sample : null;
+    }
+
+    private static bool LabelsMatchExceptLe(
+        IReadOnlyDictionary<string, string> candidate,
+        IReadOnlyDictionary<string, string> expected)
+    {
+        if (candidate.Count != expected.Count + 1)
+            return false;
+
+        foreach (var label in expected)
+        {
+            if (!candidate.TryGetValue(label.Key, out var value) ||
+                !StringComparer.Ordinal.Equals(value, label.Value))
+            {
+                return false;
+            }
+        }
+
+        return candidate.ContainsKey("le");
+    }
+
+    private static bool TryParseBucketBound(string value, out double bound)
+    {
+        if (value == "+Inf")
+        {
+            bound = double.PositiveInfinity;
+            return true;
+        }
+
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out bound) &&
+               bound >= 0;
     }
 
     private static double? CounterRate(MetricsSnapshot first, MetricsSnapshot last, TimeSpan covered, string name)
@@ -186,5 +317,16 @@ public sealed class MetricsReportBuilder
             return null;
 
         return last - first;
+    }
+
+    private static double? MaxOrNull(IEnumerable<double?> values)
+    {
+        var max = values
+            .Where(value => value != null)
+            .Select(value => value!.Value)
+            .DefaultIfEmpty(double.NaN)
+            .Max();
+
+        return double.IsNaN(max) ? null : max;
     }
 }

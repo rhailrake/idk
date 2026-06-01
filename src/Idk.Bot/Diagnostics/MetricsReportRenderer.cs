@@ -41,7 +41,7 @@ public sealed class MetricsReportRenderer
         DrawChartPanel(canvas, new SKRect(784, 634, Width - Margin, 962), "Physics controllers", RenderBarChart(report.PhysicsControllers, 710, 238, Green));
 
         DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, Height - Margin), report);
-        DrawCountsPanel(canvas, new SKRect(784, 986, Width - Margin, Height - Margin), report);
+        DrawServerPanel(canvas, new SKRect(784, 986, Width - Margin, Height - Margin), report);
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 92);
@@ -64,7 +64,7 @@ public sealed class MetricsReportRenderer
         var y = 134f;
         var width = (Width - Margin * 2 - Gap * 3) / 4f;
 
-        DrawKpi(canvas, new SKRect(Margin, y, Margin + width, y + 112), "tick avg", FormatMilliseconds(GetAverageTickMilliseconds(report)), SKColors.CornflowerBlue);
+        DrawKpi(canvas, new SKRect(Margin, y, Margin + width, y + 112), "main / tick", FormatMilliseconds(report.ServerSummary.MainLoopAverageMilliseconds), SKColors.CornflowerBlue);
         DrawKpi(canvas, new SKRect(Margin + (width + Gap), y, Margin + (width + Gap) + width, y + 112), "players", FormatCount(report.Gauges.Players), new SKColor(72, 198, 140));
         DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 2, y, Margin + (width + Gap) * 2 + width, y + 112), "entities", FormatCount(report.Gauges.Entities), new SKColor(174, 125, 255));
         DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 3, y, Margin + (width + Gap) * 3 + width, y + 112), "net out", FormatBytesPerSecond(report.Network.SentBytesPerSecond), new SKColor(242, 170, 80));
@@ -105,25 +105,22 @@ public sealed class MetricsReportRenderer
         DrawMetricRow(canvas, right, y, "dropped", FormatRate(report.Network.DroppedPerSecond), Orange);
     }
 
-    private static void DrawCountsPanel(SKCanvas canvas, SKRect rect, MetricsReport report)
+    private static void DrawServerPanel(SKCanvas canvas, SKRect rect, MetricsReport report)
     {
         DrawRoundRect(canvas, rect, Panel, PanelStroke);
-        DrawText(canvas, "Counts", rect.Left + 24, rect.Top + 34, 20, Text, true);
-
-        var gameState = report.ServerAreas.FirstOrDefault(area => area.Name == "GameState");
-        var entitySystems = report.ServerAreas.FirstOrDefault(area => area.Name == "EntitySystems");
+        DrawText(canvas, "Server", rect.Left + 24, rect.Top + 34, 20, Text, true);
 
         var left = rect.Left + 28;
         var right = rect.Left + rect.Width / 2f + 18;
         var y = rect.Top + 78;
-        DrawMetricRow(canvas, left, y, "game state", FormatMillisecondsPerSecond(gameState?.MillisecondsPerSecond), Purple);
-        DrawMetricRow(canvas, right, y, "entity systems", FormatMillisecondsPerSecond(entitySystems?.MillisecondsPerSecond), Blue);
+        DrawMetricRow(canvas, left, y, "tickrate", FormatRate(report.ServerSummary.TickRate), Blue);
+        DrawMetricRow(canvas, right, y, "server load", FormatMillisecondsPerSecond(report.ServerSummary.MainLoopMillisecondsPerSecond), Purple);
+        y += 58;
+        DrawMetricRow(canvas, left, y, "area p95", FormatMilliseconds(report.ServerSummary.WorstAreaP95Milliseconds), Orange);
+        DrawMetricRow(canvas, right, y, "area p99", FormatMilliseconds(report.ServerSummary.WorstAreaP99Milliseconds), Orange);
         y += 58;
         DrawMetricRow(canvas, left, y, "active movers", FormatCount(report.Gauges.ActiveMovers), Orange);
         DrawMetricRow(canvas, right, y, "active NPC", FormatCount(report.Gauges.ActiveNpcs), Green);
-        y += 58;
-        DrawMetricRow(canvas, left, y, "NPC steering", FormatCount(report.Gauges.ActiveNpcSteering), Green);
-        DrawMetricRow(canvas, right, y, "covered", FormatDuration(report.Covered), PlotMuted);
     }
 
     private static void DrawMetricRow(SKCanvas canvas, float x, float y, string label, string value, ScottPlot.Color accent)
@@ -237,18 +234,6 @@ public sealed class MetricsReportRenderer
         using var font = new SKFont(typeface, size);
         using var paint = new SKPaint { Color = color, IsAntialias = true };
         canvas.DrawText(text, x, y, font, paint);
-    }
-
-    private static double? GetAverageTickMilliseconds(MetricsReport report)
-    {
-        if (report.ServerAreas.Count == 0)
-            return null;
-
-        var callsPerSecond = report.ServerAreas.Max(area => area.CallsPerSecond);
-        if (callsPerSecond <= 0)
-            return null;
-
-        return report.ServerAreas.Sum(area => area.MillisecondsPerSecond) / callsPerSecond;
     }
 
     private static string FormatDuration(TimeSpan duration)

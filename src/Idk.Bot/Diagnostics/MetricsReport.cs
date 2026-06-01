@@ -9,12 +9,20 @@ public sealed record MetricsReport(
     int SampleCount,
     DateTimeOffset StartedAt,
     DateTimeOffset EndedAt,
+    MetricsServerSummary ServerSummary,
     MetricsGaugeSummary Gauges,
     MetricsNetworkSummary Network,
     IReadOnlyList<MetricsTimedArea> ServerAreas,
     IReadOnlyList<MetricsTimedArea> EntitySystems,
     IReadOnlyList<MetricsTimedArea> GameStateAreas,
     IReadOnlyList<MetricsTimedArea> PhysicsControllers);
+
+public sealed record MetricsServerSummary(
+    double? TickRate,
+    double? MainLoopMillisecondsPerSecond,
+    double? MainLoopAverageMilliseconds,
+    double? WorstAreaP95Milliseconds,
+    double? WorstAreaP99Milliseconds);
 
 public sealed record MetricsGaugeSummary(
     double? Players,
@@ -38,4 +46,6 @@ public sealed record MetricsTimedArea(
     string Name,
     double MillisecondsPerSecond,
     double AverageMilliseconds,
-    double CallsPerSecond);
+    double CallsPerSecond,
+    double? P95Milliseconds = null,
+    double? P99Milliseconds = null);

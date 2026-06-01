@@ -95,15 +95,13 @@ public sealed class MetricsCommandHandler(
             ? "n/a"
             : string.Join(", ", topSystems.Select(system => $"{system.Name} `{FormatMillisecondsPerSecond(system.MillisecondsPerSecond)}`"));
 
-        var gameState = report.ServerAreas.FirstOrDefault(area => area.Name == "GameState");
-        var entitySystems = report.ServerAreas.FirstOrDefault(area => area.Name == "EntitySystems");
-
         return $"""
             `{report.Server.Id}` metrics
             range: `{FormatDuration(report.Covered)}`, samples: `{report.SampleCount}`
 
             players: `{FormatCount(report.Gauges.Players)}`, entities: `{FormatCount(report.Gauges.Entities)}`
-            server: game state `{FormatMillisecondsPerSecond(gameState?.MillisecondsPerSecond)}`, entity systems `{FormatMillisecondsPerSecond(entitySystems?.MillisecondsPerSecond)}`
+            server: main `{FormatMilliseconds(report.ServerSummary.MainLoopAverageMilliseconds)}/tick`, load `{FormatMillisecondsPerSecond(report.ServerSummary.MainLoopMillisecondsPerSecond)}`, tickrate `{FormatRate(report.ServerSummary.TickRate)}`
+            spikes: area p95 `{FormatMilliseconds(report.ServerSummary.WorstAreaP95Milliseconds)}`, area p99 `{FormatMilliseconds(report.ServerSummary.WorstAreaP99Milliseconds)}`
             net: out `{FormatBytesPerSecond(report.Network.SentBytesPerSecond)}`, in `{FormatBytesPerSecond(report.Network.ReceivedBytesPerSecond)}`, dropped `{FormatRate(report.Network.DroppedPerSecond)}`
             systems: {systems}
             """;
@@ -135,6 +133,11 @@ public sealed class MetricsCommandHandler(
     private static string FormatMillisecondsPerSecond(double? value)
     {
         return value == null ? "n/a" : $"{value.Value:0.##}ms/s";
+    }
+
+    private static string FormatMilliseconds(double? value)
+    {
+        return value == null ? "n/a" : $"{value.Value:0.##}ms";
     }
 
     private static string FormatCount(double? value)

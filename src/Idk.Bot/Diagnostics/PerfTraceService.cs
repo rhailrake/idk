@@ -2,13 +2,15 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Idk.Bot.Configuration;
 using Idk.Bot.Execution;
+using Microsoft.Extensions.Logging;
 
 namespace Idk.Bot.Diagnostics;
 
 public sealed partial class PerfTraceService(
     DiagnosticsOptions options,
     IProcessExecutor processExecutor,
-    ITraceArchiveStore archiveStore) : IPerfTraceService
+    ITraceArchiveStore archiveStore,
+    ILogger<PerfTraceService> logger) : IPerfTraceService
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _serverLocks = new(StringComparer.OrdinalIgnoreCase);
 
@@ -22,9 +24,13 @@ public sealed partial class PerfTraceService(
         {
             var result = await processExecutor.ExecuteAsync(CreateTraceCommand(server, duration), cancellationToken);
             var archivePath = result.Success ? TryFindArchivePath(result.StandardOutput) : null;
+            var traceDirectory = result.Success ? TryFindTraceDirectory(result.StandardOutput) : null;
 
             if (archivePath != null)
                 await archiveStore.SaveLatestAsync(server, archivePath, cancellationToken);
+
+            if (archivePath != null && traceDirectory != null)
+                await CleanupTraceDirectoryAsync(traceDirectory, cancellationToken);
 
             return new PerfTraceResult(
                 server,
@@ -67,6 +73,55 @@ public sealed partial class PerfTraceService(
             : matches[^1].Value;
     }
 
+    private async Task CleanupTraceDirectoryAsync(string traceDirectory, CancellationToken cancellationToken)
+    {
+        if (!IsSafeTraceDirectory(traceDirectory))
+        {
+            logger.LogWarning("Refusing to cleanup unsafe trace directory: {TraceDirectory}", traceDirectory);
+            return;
+        }
+
+        const string script = """
+            set -euo pipefail
+            case "$TRACE_DIR" in
+                "$HOME"/ss14-traces/lagtrace_*) rm -rf -- "$TRACE_DIR" ;;
+                *) exit 2 ;;
+            esac
+            """;
+
+        var result = await processExecutor.ExecuteAsync(
+            new ProcessCommand(
+                "sudo",
+                ["-n", "-H", "-u", "ss14", "env", $"TRACE_DIR={traceDirectory}", "bash", "-lc", script],
+                Timeout: TimeSpan.FromMinutes(2)),
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            logger.LogWarning(
+                "Failed to cleanup trace directory {TraceDirectory}. Exit={ExitCode} Error={Error}",
+                traceDirectory,
+                result.ExitCode,
+                result.StandardError.Trim());
+        }
+    }
+
+    private static bool IsSafeTraceDirectory(string traceDirectory)
+    {
+        return traceDirectory.StartsWith("/home/ss14/ss14-traces/lagtrace_", StringComparison.Ordinal) &&
+               !traceDirectory.Contains("..", StringComparison.Ordinal) &&
+               !traceDirectory.Any(char.IsControl);
+    }
+
     [GeneratedRegex(@"\/\S+\.tar\.gz", RegexOptions.Compiled)]
     private static partial Regex ArchivePathRegex();
+
+    private static string? TryFindTraceDirectory(string output)
+    {
+        var match = TraceDirectoryRegex().Match(output);
+        return match.Success ? match.Groups["path"].Value : null;
+    }
+
+    [GeneratedRegex(@"(?m)^Trace dir:\s*(?<path>\/\S+)\s*$", RegexOptions.Compiled)]
+    private static partial Regex TraceDirectoryRegex();
 }
