@@ -10,7 +10,13 @@ public sealed class SlashCommandDispatcher(
     BotCommandHandler botCommandHandler,
     ILogger<SlashCommandDispatcher> logger)
 {
-    public async Task HandleAsync(SocketSlashCommand command)
+    public Task HandleAsync(SocketSlashCommand command)
+    {
+        _ = Task.Run(() => HandleCommandAsync(command));
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleCommandAsync(SocketSlashCommand command)
     {
         try
         {
