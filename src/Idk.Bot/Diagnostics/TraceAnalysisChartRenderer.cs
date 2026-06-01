@@ -148,7 +148,8 @@ public sealed class TraceAnalysisChartRenderer
             samples.Select(x => x.ExclusivePercent).ToArray(),
             samples.Select(x => ColorForCategory(x.Category)).ToArray(),
             width,
-            height);
+            height,
+            178);
     }
 
     private static byte[] RenderThreadChart(TraceAnalysisResult result, int width, int height)
@@ -162,10 +163,11 @@ public sealed class TraceAnalysisChartRenderer
             samples.Select(x => x.AverageCpuPercent).ToArray(),
             samples.Select(_ => ScottPlot.Color.FromHex("#5C8FF7")).ToArray(),
             width,
-            height);
+            height,
+            196);
     }
 
-    private static byte[] RenderHorizontalBars(string[] labels, double[] values, ScottPlot.Color[] colors, int width, int height)
+    private static byte[] RenderHorizontalBars(string[] labels, double[] values, ScottPlot.Color[] colors, int width, int height, float leftPadding)
     {
         var plot = CreateBasePlot();
         labels = labels.Reverse().ToArray();
@@ -191,12 +193,20 @@ public sealed class TraceAnalysisChartRenderer
         barPlot.ValueLabelStyle.Bold = true;
 
         plot.Axes.Left.SetTicks(Enumerable.Range(0, labels.Length).Select(x => (double)x).ToArray(), labels);
-        plot.Axes.Left.MinimumSize = 170;
+        plot.Layout.Fixed(new PixelPadding(0)
+        {
+            Left = leftPadding,
+            Right = 88,
+            Bottom = 58,
+            Top = 36,
+        });
+
+        plot.Axes.Left.MinimumSize = leftPadding;
         plot.Axes.Left.TickLabelStyle.FontSize = 11;
         plot.Axes.Bottom.TickLabelStyle.FontSize = 12;
         plot.Axes.Bottom.MinimumSize = 46;
         var max = Math.Max(values.DefaultIfEmpty(0).Max(), 1);
-        plot.Axes.SetLimits(0, max * 1.38, -1.05, labels.Length + 0.05);
+        plot.Axes.SetLimits(0, max * 1.42, -1.15, labels.Length + 0.15);
         plot.Axes.Margins(0, 0, 0, 0);
         plot.Grid.MajorLineWidth = 1;
         plot.Grid.MinorLineWidth = 0;

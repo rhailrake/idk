@@ -173,13 +173,21 @@ public sealed class MetricsReportRenderer
 
         var labels = areas.Select(area => Shorten(area.Name, 27)).ToArray();
         plot.Axes.Left.SetTicks(Enumerable.Range(0, labels.Length).Select(x => (double)x).ToArray(), labels);
-        plot.Axes.Left.MinimumSize = 215;
+        plot.Layout.Fixed(new PixelPadding(0)
+        {
+            Left = 226,
+            Right = 96,
+            Bottom = 60,
+            Top = 38,
+        });
+
+        plot.Axes.Left.MinimumSize = 226;
         plot.Axes.Left.TickLabelStyle.FontSize = 11;
         plot.Axes.Bottom.TickLabelStyle.FontSize = 11;
         plot.Axes.Bottom.MinimumSize = 52;
 
         var max = Math.Max(areas.Max(area => area.MillisecondsPerSecond), 1);
-        plot.Axes.SetLimits(0, max * 1.5, -1.15, labels.Length + 0.15);
+        plot.Axes.SetLimits(0, max * 1.58, -1.25, labels.Length + 0.25);
         plot.Grid.MajorLineWidth = 1;
         plot.Grid.MinorLineWidth = 0;
 
