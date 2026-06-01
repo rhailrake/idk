@@ -20,6 +20,7 @@ public sealed class SlashCommandRegistrar(
         var commands = new[]
         {
             BuildPerfCommand(),
+            BuildMetricsCommand(),
             BuildBotCommand(),
         };
 
@@ -115,6 +116,39 @@ public sealed class SlashCommandRegistrar(
 
             return option;
         }
+    }
+
+    private SlashCommandProperties BuildMetricsCommand()
+    {
+        var serverOption = new SlashCommandOptionBuilder()
+            .WithName("server")
+            .WithDescription("Server")
+            .WithType(ApplicationCommandOptionType.String)
+            .WithRequired(true);
+
+        foreach (var server in serverRegistry.Servers.OrderBy(server => server.Id))
+        {
+            serverOption.AddChoice(server.DisplayName, server.Id);
+        }
+
+        var summarySubCommand = new SlashCommandOptionBuilder()
+            .WithName("summary")
+            .WithDescription("Show useful server metrics")
+            .WithType(ApplicationCommandOptionType.SubCommand)
+            .AddOption(serverOption)
+            .AddOption(new SlashCommandOptionBuilder()
+                .WithName("minutes")
+                .WithDescription("History range in minutes")
+                .WithType(ApplicationCommandOptionType.Integer)
+                .WithRequired(false)
+                .WithMinValue(1)
+                .WithMaxValue(120));
+
+        return new SlashCommandBuilder()
+            .WithName("metrics")
+            .WithDescription("Server metrics")
+            .AddOption(summarySubCommand)
+            .Build();
     }
 
     private static SlashCommandProperties BuildBotCommand()

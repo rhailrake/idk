@@ -6,6 +6,7 @@ namespace Idk.Bot.Commands;
 public sealed class SlashCommandDispatcher(
     CommandAccessService accessService,
     PerfCommandHandler perfCommandHandler,
+    MetricsCommandHandler metricsCommandHandler,
     BotCommandHandler botCommandHandler,
     ILogger<SlashCommandDispatcher> logger)
 {
@@ -23,6 +24,9 @@ public sealed class SlashCommandDispatcher(
             {
                 case "perf":
                     await perfCommandHandler.HandleAsync(command);
+                    return;
+                case "metrics":
+                    await metricsCommandHandler.HandleAsync(command);
                     return;
                 case "bot":
                     await botCommandHandler.HandleAsync(command);
