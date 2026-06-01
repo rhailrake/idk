@@ -1,0 +1,2 @@
+helper ALL=(root) NOPASSWD: /bin/systemctl restart idk.service, /usr/bin/systemctl restart idk.service, /bin/tar, /usr/bin/tar, /bin/chown, /usr/bin/chown
+helper ALL=(ss14) NOPASSWD: /bin/bash, /usr/bin/bash, /usr/bin/env

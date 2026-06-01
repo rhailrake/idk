@@ -1,0 +1,16 @@
+[Unit]
+Description=idk Discord bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=helper
+WorkingDirectory=/opt/idk
+EnvironmentFile=/etc/idk/idk.env
+ExecStart=/usr/bin/dotnet /opt/idk/Idk.Bot.dll
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
