@@ -10,24 +10,12 @@ public sealed class TraceAnalysisChartRenderer
     private const float Margin = 48;
     private const float Gap = 24;
 
-    private static readonly SKColor Background = new(13, 17, 23);
-    private static readonly SKColor Panel = new(24, 30, 39);
-    private static readonly SKColor PanelStroke = new(48, 59, 75);
-    private static readonly SKColor Text = new(239, 242, 247);
-    private static readonly SKColor Muted = new(150, 162, 179);
-    private static readonly SKColor Faint = new(104, 118, 138);
-
-    private static readonly ScottPlot.Color PlotBackground = ScottPlot.Color.FromHex("#181E27");
-    private static readonly ScottPlot.Color PlotGrid = ScottPlot.Color.FromHex("#303B4B");
-    private static readonly ScottPlot.Color PlotText = ScottPlot.Color.FromHex("#EFF2F7");
-    private static readonly ScottPlot.Color PlotMuted = ScottPlot.Color.FromHex("#96A2B3");
-
     public byte[] RenderPng(TraceAnalysisResult result)
     {
         using var bitmap = new SKBitmap(new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul));
         using var canvas = new SKCanvas(bitmap);
 
-        canvas.Clear(Background);
+        canvas.Clear(ReportColors.Background);
         DrawHeader(canvas, result);
         DrawKpis(canvas, result);
 
@@ -43,36 +31,36 @@ public sealed class TraceAnalysisChartRenderer
 
     private static void DrawHeader(SKCanvas canvas, TraceAnalysisResult result)
     {
-        DrawText(canvas, $"{result.Archive.Server.Id} trace analysis", Margin, 62, 34, Text, true);
-        DrawText(canvas, Path.GetFileName(result.Archive.Path), Margin, 98, 18, Muted);
+        DrawText(canvas, $"{result.Archive.Server.Id} trace analysis", Margin, 62, 34, ReportColors.Text, true);
+        DrawText(canvas, Path.GetFileName(result.Archive.Path), Margin, 98, 18, ReportColors.Muted);
 
         var archiveRect = new SKRect(980, 38, Width - Margin, 108);
-        DrawRoundRect(canvas, archiveRect, new SKColor(34, 43, 58), PanelStroke);
-        DrawText(canvas, "archive", archiveRect.Left + 18, archiveRect.Top + 24, 14, Muted, true);
-        DrawText(canvas, Shorten(Path.GetFileName(result.Archive.Path), 48), archiveRect.Left + 18, archiveRect.Top + 54, 21, Text, true);
+        DrawRoundRect(canvas, archiveRect, new SKColor(34, 43, 58), ReportColors.PanelStroke);
+        DrawText(canvas, "archive", archiveRect.Left + 18, archiveRect.Top + 24, 14, ReportColors.Muted, true);
+        DrawText(canvas, Shorten(Path.GetFileName(result.Archive.Path), 48), archiveRect.Left + 18, archiveRect.Top + 54, 21, ReportColors.Text, true);
     }
 
     private static void DrawKpis(SKCanvas canvas, TraceAnalysisResult result)
     {
         var y = 134f;
         var width = (Width - Margin * 2 - Gap * 3) / 4f;
-        DrawKpi(canvas, new SKRect(Margin, y, Margin + width, y + 112), "process avg", FormatPercent(result.Process?.AverageCpuPercent), SKColors.CornflowerBlue);
-        DrawKpi(canvas, new SKRect(Margin + (width + Gap), y, Margin + (width + Gap) + width, y + 112), "process peak", FormatPercent(result.Process?.MaxCpuPercent), new SKColor(242, 170, 80));
-        DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 2, y, Margin + (width + Gap) * 2 + width, y + 112), "host idle", FormatPercent(result.Hardware?.AverageCpuIdlePercent), new SKColor(72, 198, 140));
-        DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 3, y, Margin + (width + Gap) * 3 + width, y + 112), "iowait", FormatPercent(result.Hardware?.AverageCpuWaitPercent), new SKColor(174, 125, 255));
+        DrawKpi(canvas, new SKRect(Margin, y, Margin + width, y + 112), "process avg", FormatPercent(result.Process?.AverageCpuPercent), ReportColors.SkHigher(result.Process?.AverageCpuPercent, 100, 250));
+        DrawKpi(canvas, new SKRect(Margin + (width + Gap), y, Margin + (width + Gap) + width, y + 112), "process peak", FormatPercent(result.Process?.MaxCpuPercent), ReportColors.SkHigher(result.Process?.MaxCpuPercent, 200, 400));
+        DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 2, y, Margin + (width + Gap) * 2 + width, y + 112), "host idle", FormatPercent(result.Hardware?.AverageCpuIdlePercent), ReportColors.SkLower(result.Hardware?.AverageCpuIdlePercent, 30, 10));
+        DrawKpi(canvas, new SKRect(Margin + (width + Gap) * 3, y, Margin + (width + Gap) * 3 + width, y + 112), "iowait", FormatPercent(result.Hardware?.AverageCpuWaitPercent), ReportColors.SkHigher(result.Hardware?.AverageCpuWaitPercent, 5, 15));
     }
 
     private static void DrawKpi(SKCanvas canvas, SKRect rect, string label, string value, SKColor accent)
     {
-        DrawRoundRect(canvas, rect, Panel, PanelStroke);
-        DrawText(canvas, label, rect.Left + 22, rect.Top + 34, 15, Muted, true);
+        DrawRoundRect(canvas, rect, ReportColors.Panel, ReportColors.PanelStroke);
+        DrawText(canvas, label, rect.Left + 22, rect.Top + 34, 15, ReportColors.Muted, true);
         DrawText(canvas, value, rect.Left + 22, rect.Top + 82, 36, accent, true);
     }
 
     private static void DrawChartPanel(SKCanvas canvas, SKRect rect, string title, byte[] chartPng)
     {
-        DrawRoundRect(canvas, rect, Panel, PanelStroke);
-        DrawText(canvas, title, rect.Left + 24, rect.Top + 34, 20, Text, true);
+        DrawRoundRect(canvas, rect, ReportColors.Panel, ReportColors.PanelStroke);
+        DrawText(canvas, title, rect.Left + 24, rect.Top + 34, 20, ReportColors.Text, true);
 
         using var chart = SKBitmap.Decode(chartPng);
         var target = new SKRect(rect.Left + 28, rect.Top + 58, rect.Right - 34, rect.Bottom - 30);
@@ -81,24 +69,23 @@ public sealed class TraceAnalysisChartRenderer
 
     private static void DrawFunctionPanel(SKCanvas canvas, SKRect rect, TraceAnalysisResult result)
     {
-        DrawRoundRect(canvas, rect, Panel, PanelStroke);
-        DrawText(canvas, "Functions", rect.Left + 24, rect.Top + 34, 20, Text, true);
+        DrawRoundRect(canvas, rect, ReportColors.Panel, ReportColors.PanelStroke);
+        DrawText(canvas, "Functions", rect.Left + 24, rect.Top + 34, 20, ReportColors.Text, true);
 
-        DrawText(canvas, "#", rect.Left + 28, rect.Top + 72, 13, Faint, true);
-        DrawText(canvas, "exc", rect.Left + 72, rect.Top + 72, 13, Faint, true);
-        DrawText(canvas, "inc", rect.Left + 148, rect.Top + 72, 13, Faint, true);
-        DrawText(canvas, "category", rect.Left + 224, rect.Top + 72, 13, Faint, true);
-        DrawText(canvas, "method", rect.Left + 350, rect.Top + 72, 13, Faint, true);
+        DrawText(canvas, "#", rect.Left + 28, rect.Top + 72, 13, ReportColors.Faint, true);
+        DrawText(canvas, "exc", rect.Left + 72, rect.Top + 72, 13, ReportColors.Faint, true);
+        DrawText(canvas, "inc", rect.Left + 148, rect.Top + 72, 13, ReportColors.Faint, true);
+        DrawText(canvas, "category", rect.Left + 224, rect.Top + 72, 13, ReportColors.Faint, true);
+        DrawText(canvas, "method", rect.Left + 350, rect.Top + 72, 13, ReportColors.Faint, true);
 
         var y = rect.Top + 112;
         foreach (var function in result.HotFunctions.Take(8))
         {
-            var color = ToSkColor(ColorForCategory(function.Category));
-            DrawText(canvas, $"{function.Rank}.", rect.Left + 28, y, 16, Muted, true);
-            DrawText(canvas, FormatPercent(function.ExclusivePercent), rect.Left + 72, y, 16, color, true);
-            DrawText(canvas, FormatPercent(function.InclusivePercent), rect.Left + 148, y, 16, Muted, true);
+            DrawText(canvas, $"{function.Rank}.", rect.Left + 28, y, 16, ReportColors.Muted, true);
+            DrawText(canvas, FormatPercent(function.ExclusivePercent), rect.Left + 72, y, 16, ReportColors.SkHigher(function.ExclusivePercent, 5, 15), true);
+            DrawText(canvas, FormatPercent(function.InclusivePercent), rect.Left + 148, y, 16, ReportColors.SkHigher(function.InclusivePercent, 15, 30), true);
             DrawCategoryPill(canvas, rect.Left + 224, y - 20, function.Category);
-            DrawText(canvas, Shorten(CompactFunctionName(function.Name), 61), rect.Left + 350, y, 16, Text);
+            DrawText(canvas, Shorten(CompactFunctionName(function.Name), 61), rect.Left + 350, y, 16, ReportColors.Text);
             y += 42;
         }
     }
@@ -114,24 +101,24 @@ public sealed class TraceAnalysisChartRenderer
 
         var slices = new List<PieSlice>
         {
-            new() { Value = values[0], FillColor = ScottPlot.Color.FromHex("#5C8FF7"), LegendText = $"user {FormatPercent(values[0])}" },
-            new() { Value = values[1], FillColor = ScottPlot.Color.FromHex("#F2AA50"), LegendText = $"system {FormatPercent(values[1])}" },
-            new() { Value = values[2], FillColor = ScottPlot.Color.FromHex("#AE7DFF"), LegendText = $"wait {FormatPercent(values[2])}" },
+            new() { Value = values[0], FillColor = ReportColors.Info, LegendText = $"user {FormatPercent(values[0])}" },
+            new() { Value = values[1], FillColor = ReportColors.Cyan, LegendText = $"system {FormatPercent(values[1])}" },
+            new() { Value = values[2], FillColor = ReportColors.PlotHigher(values[2], 5, 15), LegendText = $"wait {FormatPercent(values[2])}" },
         };
 
         if (values.Sum() <= 0)
-            slices = [new PieSlice { Value = 1, FillColor = PlotMuted, LegendText = "n/a" }];
+            slices = [new PieSlice { Value = 1, FillColor = ReportColors.PlotMuted, LegendText = "n/a" }];
 
         var plot = CreateBasePlot();
         var pie = plot.Add.Pie(slices);
         pie.DonutFraction = 0.62;
         pie.SliceLabelDistance = 0;
-        pie.LineColor = PlotBackground;
+        pie.LineColor = ReportColors.PlotBackground;
         pie.LineWidth = 2;
         plot.ShowLegend(Alignment.MiddleRight);
-        plot.Legend.FontColor = PlotText;
-        plot.Legend.BackgroundColor = PlotBackground;
-        plot.Legend.OutlineColor = PlotBackground;
+        plot.Legend.FontColor = ReportColors.PlotText;
+        plot.Legend.BackgroundColor = ReportColors.PlotBackground;
+        plot.Legend.OutlineColor = ReportColors.PlotBackground;
         plot.HideAxesAndGrid();
 
         return plot.GetImageBytes(width, height, ImageFormat.Png);
@@ -146,7 +133,7 @@ public sealed class TraceAnalysisChartRenderer
         return RenderHorizontalBars(
             samples.Select(x => x.Category).ToArray(),
             samples.Select(x => x.ExclusivePercent).ToArray(),
-            samples.Select(x => ColorForCategory(x.Category)).ToArray(),
+            samples.Select(x => ReportColors.PlotHigher(x.ExclusivePercent, 15, 30)).ToArray(),
             width,
             height,
             178);
@@ -161,7 +148,7 @@ public sealed class TraceAnalysisChartRenderer
         return RenderHorizontalBars(
             samples.Select(x => Shorten(x.Name, 28)).ToArray(),
             samples.Select(x => x.AverageCpuPercent).ToArray(),
-            samples.Select(_ => ScottPlot.Color.FromHex("#5C8FF7")).ToArray(),
+            samples.Select(x => ReportColors.PlotHigher(x.AverageCpuPercent, 70, 95)).ToArray(),
             width,
             height,
             196);
@@ -188,7 +175,7 @@ public sealed class TraceAnalysisChartRenderer
         var barPlot = plot.Add.Bars(bars);
         barPlot.Horizontal = true;
         barPlot.LabelsOnTop = true;
-        barPlot.ValueLabelStyle.ForeColor = PlotText;
+        barPlot.ValueLabelStyle.ForeColor = ReportColors.PlotText;
         barPlot.ValueLabelStyle.FontSize = 13;
         barPlot.ValueLabelStyle.Bold = true;
 
@@ -218,12 +205,12 @@ public sealed class TraceAnalysisChartRenderer
     {
         var plot = new Plot();
         plot.SetStyle(new ScottPlot.PlotStyles.Dark());
-        plot.FigureBackground.Color = PlotBackground;
-        plot.DataBackground.Color = PlotBackground;
-        plot.Axes.Color(PlotMuted);
-        plot.Axes.FrameColor(PlotBackground);
-        plot.Grid.MajorLineColor = PlotGrid;
-        plot.Grid.MinorLineColor = PlotBackground;
+        plot.FigureBackground.Color = ReportColors.PlotBackground;
+        plot.DataBackground.Color = ReportColors.PlotBackground;
+        plot.Axes.Color(ReportColors.PlotMuted);
+        plot.Axes.FrameColor(ReportColors.PlotBackground);
+        plot.Grid.MajorLineColor = ReportColors.PlotGrid;
+        plot.Grid.MinorLineColor = ReportColors.PlotBackground;
         plot.Font.Set("DejaVu Sans", FontWeight.Normal, FontSlant.Upright, FontSpacing.Normal);
         return plot;
     }
@@ -231,7 +218,7 @@ public sealed class TraceAnalysisChartRenderer
     private static void DrawCategoryPill(SKCanvas canvas, float x, float y, string category)
     {
         var rect = new SKRect(x, y, x + 100, y + 24);
-        var color = ToSkColor(ColorForCategory(category));
+        var color = ReportColors.ToSkColor(CategoryAccent(category));
         DrawRoundRect(canvas, rect, color.WithAlpha(34), color.WithAlpha(86));
         DrawText(canvas, Shorten(category, 13), x + 10, y + 17, 12, color, true);
     }
@@ -254,24 +241,19 @@ public sealed class TraceAnalysisChartRenderer
         canvas.DrawText(text, x, y, font, paint);
     }
 
-    private static ScottPlot.Color ColorForCategory(string category)
+    private static ScottPlot.Color CategoryAccent(string category)
     {
         return category switch
         {
-            "Network" => ScottPlot.Color.FromHex("#5C8FF7"),
-            "PVS" => ScottPlot.Color.FromHex("#AE7DFF"),
-            "Serialization" => ScottPlot.Color.FromHex("#48C68C"),
-            "Physics/Movement" => ScottPlot.Color.FromHex("#F2AA50"),
-            "Atmos" => ScottPlot.Color.FromHex("#53BEC4"),
-            "Power" => ScottPlot.Color.FromHex("#EFD55B"),
-            "NPC" => ScottPlot.Color.FromHex("#CB78AA"),
-            _ => PlotMuted,
+            "Network" => ReportColors.Info,
+            "PVS" => ReportColors.Violet,
+            "Serialization" => ReportColors.Cyan,
+            "Physics/Movement" => ReportColors.Cyan,
+            "Atmos" => ReportColors.Info,
+            "Power" => ReportColors.Violet,
+            "NPC" => ReportColors.Cyan,
+            _ => ReportColors.PlotMuted,
         };
-    }
-
-    private static SKColor ToSkColor(ScottPlot.Color color)
-    {
-        return new SKColor(color.Red, color.Green, color.Blue, color.Alpha);
     }
 
     private static string FormatPercent(double? value)
