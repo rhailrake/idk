@@ -90,10 +90,8 @@ public sealed class MetricsCommandHandler(
                 """;
         }
 
-        var topSystems = report.EntitySystems.Take(4).ToArray();
-        var systems = topSystems.Length == 0
-            ? "n/a"
-            : string.Join(", ", topSystems.Select(system => $"{system.Name} `{FormatMillisecondsPerSecond(system.MillisecondsPerSecond)}`"));
+        var systems = FormatTimedAreas(report.EntitySystems.Take(4));
+        var physicsControllers = FormatTimedAreas(report.PhysicsControllers.Take(4));
 
         return $"""
             `{report.Server.Id}` metrics
@@ -104,7 +102,16 @@ public sealed class MetricsCommandHandler(
             spikes: area p95 `{FormatMilliseconds(report.ServerSummary.WorstAreaP95Milliseconds)}`, area p99 `{FormatMilliseconds(report.ServerSummary.WorstAreaP99Milliseconds)}`
             net: out `{FormatBytesPerSecond(report.Network.SentBytesPerSecond)}`, in `{FormatBytesPerSecond(report.Network.ReceivedBytesPerSecond)}`, dropped `{FormatRate(report.Network.DroppedPerSecond)}`
             systems: {systems}
+            physics ctrl: {physicsControllers}
             """;
+    }
+
+    private static string FormatTimedAreas(IEnumerable<MetricsTimedArea> areas)
+    {
+        var timedAreas = areas.ToArray();
+        return timedAreas.Length == 0
+            ? "n/a"
+            : string.Join(", ", timedAreas.Select(area => $"{area.Name} `{FormatMillisecondsPerSecond(area.MillisecondsPerSecond)}`"));
     }
 
     private static string? GetStringOption(SocketSlashCommandDataOption subCommand, string name)
