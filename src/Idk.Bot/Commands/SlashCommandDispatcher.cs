@@ -7,6 +7,7 @@ public sealed class SlashCommandDispatcher(
     CommandAccessService accessService,
     PerfCommandHandler perfCommandHandler,
     MetricsCommandHandler metricsCommandHandler,
+    PhysicsCommandHandler physicsCommandHandler,
     BotCommandHandler botCommandHandler,
     ILogger<SlashCommandDispatcher> logger)
 {
@@ -33,6 +34,9 @@ public sealed class SlashCommandDispatcher(
                     return;
                 case "metrics":
                     await metricsCommandHandler.HandleAsync(command);
+                    return;
+                case "physics":
+                    await physicsCommandHandler.HandleAsync(command);
                     return;
                 case "bot":
                     await botCommandHandler.HandleAsync(command);

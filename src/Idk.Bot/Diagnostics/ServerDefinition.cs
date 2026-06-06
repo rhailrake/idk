@@ -4,4 +4,7 @@ public sealed record ServerDefinition(
     string Id,
     string DisplayName,
     string LagtraceTarget,
-    Uri MetricsEndpoint);
+    Uri MetricsEndpoint)
+{
+    public Uri PhysicsDiagnosticsEndpoint => new(MetricsEndpoint, "/physicsdiag/");
+}

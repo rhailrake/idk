@@ -36,6 +36,7 @@ public static class HostApplicationBuilderExtensions
         services.AddSingleton<MetricsService>();
         services.AddSingleton<IMetricsService>(provider => provider.GetRequiredService<MetricsService>());
         services.AddHostedService(provider => provider.GetRequiredService<MetricsService>());
+        services.AddSingleton<IPhysicsDiagnosticsService, PhysicsDiagnosticsService>();
         services.AddSingleton<ITraceArchiveStore, TraceArchiveStore>();
         services.AddSingleton<ITraceAnalysisService, TraceAnalysisService>();
         services.AddSingleton<ITraceCleanupService, TraceCleanupService>();
@@ -47,6 +48,7 @@ public static class HostApplicationBuilderExtensions
         services.AddSingleton<CommandAccessService>();
         services.AddSingleton<PerfCommandHandler>();
         services.AddSingleton<MetricsCommandHandler>();
+        services.AddSingleton<PhysicsCommandHandler>();
         services.AddSingleton<BotCommandHandler>();
         services.AddSingleton<TraceArchiveResponder>();
         services.AddSingleton<TraceAnalysisResponder>();

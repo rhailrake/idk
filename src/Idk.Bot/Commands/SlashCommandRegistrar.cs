@@ -21,6 +21,7 @@ public sealed class SlashCommandRegistrar(
         {
             BuildPerfCommand(),
             BuildMetricsCommand(),
+            BuildPhysicsCommand(),
             BuildBotCommand(),
         };
 
@@ -148,6 +149,39 @@ public sealed class SlashCommandRegistrar(
             .WithName("metrics")
             .WithDescription("Server metrics")
             .AddOption(summarySubCommand)
+            .Build();
+    }
+
+    private SlashCommandProperties BuildPhysicsCommand()
+    {
+        var serverOption = new SlashCommandOptionBuilder()
+            .WithName("server")
+            .WithDescription("Server")
+            .WithType(ApplicationCommandOptionType.String)
+            .WithRequired(true);
+
+        foreach (var server in serverRegistry.Servers.OrderBy(server => server.Id))
+        {
+            serverOption.AddChoice(server.DisplayName, server.Id);
+        }
+
+        var diagSubCommand = new SlashCommandOptionBuilder()
+            .WithName("diag")
+            .WithDescription("Show live physics diagnostics")
+            .WithType(ApplicationCommandOptionType.SubCommand)
+            .AddOption(serverOption)
+            .AddOption(new SlashCommandOptionBuilder()
+                .WithName("limit")
+                .WithDescription("Rows per section")
+                .WithType(ApplicationCommandOptionType.Integer)
+                .WithRequired(false)
+                .WithMinValue(1)
+                .WithMaxValue(200));
+
+        return new SlashCommandBuilder()
+            .WithName("physics")
+            .WithDescription("Physics diagnostics")
+            .AddOption(diagSubCommand)
             .Build();
     }
 
