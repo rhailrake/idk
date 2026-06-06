@@ -11,10 +11,12 @@ public sealed record MetricsReport(
     DateTimeOffset EndedAt,
     MetricsServerSummary ServerSummary,
     MetricsGaugeSummary Gauges,
+    MetricsPhysicsSummary Physics,
     MetricsNetworkSummary Network,
     IReadOnlyList<MetricsTimedArea> ServerAreas,
     IReadOnlyList<MetricsTimedArea> EntitySystems,
     IReadOnlyList<MetricsTimedArea> GameStateAreas,
+    IReadOnlyList<MetricsTimedArea> PhysicsPhases,
     IReadOnlyList<MetricsTimedArea> PhysicsControllers);
 
 public sealed record MetricsServerSummary(
@@ -30,6 +32,13 @@ public sealed record MetricsGaugeSummary(
     double? ActiveMovers,
     double? ActiveNpcs,
     double? ActiveNpcSteering);
+
+public sealed record MetricsPhysicsSummary(
+    double? AwakeBodies,
+    double? ActiveContacts,
+    double? MovedGrids,
+    double? MoveBuffer,
+    double? NewContactPairs);
 
 public sealed record MetricsNetworkSummary(
     double? SentBytesPerSecond,

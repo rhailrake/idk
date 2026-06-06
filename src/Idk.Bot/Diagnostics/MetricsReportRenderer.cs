@@ -6,7 +6,7 @@ namespace Idk.Bot.Diagnostics;
 public sealed class MetricsReportRenderer
 {
     private const int Width = 1600;
-    private const int Height = 1320;
+    private const int Height = 1440;
     private const float Margin = 48;
     private const float Gap = 24;
 
@@ -21,7 +21,7 @@ public sealed class MetricsReportRenderer
 
         DrawChartPanel(canvas, new SKRect(Margin, 282, 760, 610), "Main loop", RenderBarChart(report.ServerAreas, 642, 238, TimedAreaScope.Server));
         DrawChartPanel(canvas, new SKRect(784, 282, Width - Margin, 610), "Entity systems", RenderBarChart(report.EntitySystems.Take(8), 710, 238, TimedAreaScope.EntitySystem));
-        DrawChartPanel(canvas, new SKRect(Margin, 634, 760, 962), "PVS / game state", RenderBarChart(report.GameStateAreas, 642, 238, TimedAreaScope.GameState));
+        DrawChartPanel(canvas, new SKRect(Margin, 634, 760, 962), "Physics phases", RenderBarChart(report.PhysicsPhases, 642, 238, TimedAreaScope.PhysicsPhase));
         DrawChartPanel(canvas, new SKRect(784, 634, Width - Margin, 962), "Physics controllers", RenderBarChart(report.PhysicsControllers, 710, 238, TimedAreaScope.PhysicsController));
 
         DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, Height - Margin), report);
@@ -105,9 +105,18 @@ public sealed class MetricsReportRenderer
         y += 58;
         DrawMetricRow(canvas, left, y, "area p95", FormatMilliseconds(report.ServerSummary.WorstAreaP95Milliseconds), ReportColors.SkHigher(report.ServerSummary.WorstAreaP95Milliseconds, tickBudget * 0.5, tickBudget));
         DrawMetricRow(canvas, right, y, "area p99", FormatMilliseconds(report.ServerSummary.WorstAreaP99Milliseconds), ReportColors.SkHigher(report.ServerSummary.WorstAreaP99Milliseconds, tickBudget * 0.75, tickBudget * 1.25));
-        y += 58;
+        y += 52;
         DrawMetricRow(canvas, left, y, "active movers", FormatCount(report.Gauges.ActiveMovers), ReportColors.SkHigher(report.Gauges.ActiveMovers, 300, 700));
         DrawMetricRow(canvas, right, y, "active NPC", FormatCount(report.Gauges.ActiveNpcs), ReportColors.SkHigher(report.Gauges.ActiveNpcs, 250, 500));
+        y += 52;
+        DrawMetricRow(canvas, left, y, "awake bodies", FormatCount(report.Physics.AwakeBodies), ReportColors.SkHigher(report.Physics.AwakeBodies, 1_500, 4_000));
+        DrawMetricRow(canvas, right, y, "contacts", FormatCount(report.Physics.ActiveContacts), ReportColors.SkHigher(report.Physics.ActiveContacts, 4_000, 12_000));
+        y += 52;
+        DrawMetricRow(canvas, left, y, "moved grids", FormatCount(report.Physics.MovedGrids), ReportColors.SkHigher(report.Physics.MovedGrids, 4, 12));
+        DrawMetricRow(canvas, right, y, "move buffer", FormatCount(report.Physics.MoveBuffer), ReportColors.SkHigher(report.Physics.MoveBuffer, 4_000, 12_000));
+        y += 52;
+        DrawMetricRow(canvas, left, y, "new pairs", FormatCount(report.Physics.NewContactPairs), ReportColors.SkHigher(report.Physics.NewContactPairs, 2_000, 8_000));
+        DrawMetricRow(canvas, right, y, "NPC steering", FormatCount(report.Gauges.ActiveNpcSteering), ReportColors.SkHigher(report.Gauges.ActiveNpcSteering, 250, 500));
     }
 
     private static void DrawMetricRow(SKCanvas canvas, float x, float y, string label, string value, SKColor accent)
@@ -202,6 +211,7 @@ public sealed class MetricsReportRenderer
             TimedAreaScope.Server => ReportColors.PlotHigher(area.MillisecondsPerSecond, 250, 500),
             TimedAreaScope.EntitySystem => ReportColors.PlotHigher(area.MillisecondsPerSecond, 25, 80),
             TimedAreaScope.GameState => ReportColors.PlotHigher(area.MillisecondsPerSecond, 50, 150),
+            TimedAreaScope.PhysicsPhase => ReportColors.PlotHigher(area.MillisecondsPerSecond, 25, 80),
             TimedAreaScope.PhysicsController => ReportColors.PlotHigher(area.MillisecondsPerSecond, 25, 80),
             _ => ReportColors.Info,
         };
@@ -293,6 +303,7 @@ public sealed class MetricsReportRenderer
         Server,
         EntitySystem,
         GameState,
+        PhysicsPhase,
         PhysicsController,
     }
 }

@@ -28,10 +28,12 @@ public sealed class MetricsReportBuilder
             last.CapturedAt,
             BuildServerSummary(first, last, covered, serverAreas),
             BuildGauges(last),
+            BuildPhysics(last),
             BuildNetwork(first, last, covered),
             serverAreas,
             BuildTimedAreas(first, last, covered, "robust_entity_systems_update_usage", "system", 12),
             BuildTimedAreas(first, last, covered, "robust_game_state_update_usage", "area", 8),
+            BuildTimedAreas(first, last, covered, "robust_entity_physics_phase_usage", "phase", 8),
             BuildPhysicsControllers(first, last, covered));
     }
 
@@ -48,7 +50,9 @@ public sealed class MetricsReportBuilder
             DateTimeOffset.MinValue,
             new MetricsServerSummary(null, null, null, null, null),
             new MetricsGaugeSummary(null, null, null, null, null),
+            new MetricsPhysicsSummary(null, null, null, null, null),
             new MetricsNetworkSummary(null, null, null, null, null, null, null, null, null),
+            [],
             [],
             [],
             [],
@@ -86,6 +90,16 @@ public sealed class MetricsReportBuilder
             latest.GetValue("physics_active_mover_count"),
             latest.GetValue("npc_active_count"),
             latest.GetValue("npc_steering_active_count"));
+    }
+
+    private static MetricsPhysicsSummary BuildPhysics(MetricsSnapshot latest)
+    {
+        return new MetricsPhysicsSummary(
+            latest.GetValue("robust_physics_awake_bodies"),
+            latest.GetValue("robust_physics_active_contacts"),
+            latest.GetValue("robust_physics_moved_grids"),
+            latest.GetValue("robust_physics_move_buffer"),
+            latest.GetValue("robust_physics_new_contact_pairs"));
     }
 
     private static MetricsNetworkSummary BuildNetwork(MetricsSnapshot first, MetricsSnapshot last, TimeSpan covered)

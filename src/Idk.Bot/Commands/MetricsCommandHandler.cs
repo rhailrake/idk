@@ -91,6 +91,7 @@ public sealed class MetricsCommandHandler(
         }
 
         var systems = FormatTimedAreas(report.EntitySystems.Take(4));
+        var physicsPhases = FormatTimedAreas(report.PhysicsPhases.Take(4));
         var physicsControllers = FormatTimedAreas(report.PhysicsControllers.Take(4));
 
         return $"""
@@ -102,7 +103,9 @@ public sealed class MetricsCommandHandler(
             spikes: area p95 `{FormatMilliseconds(report.ServerSummary.WorstAreaP95Milliseconds)}`, area p99 `{FormatMilliseconds(report.ServerSummary.WorstAreaP99Milliseconds)}`
             net: out `{FormatBytesPerSecond(report.Network.SentBytesPerSecond)}`, in `{FormatBytesPerSecond(report.Network.ReceivedBytesPerSecond)}`, dropped `{FormatRate(report.Network.DroppedPerSecond)}`
             systems: {systems}
+            physics phases: {physicsPhases}
             physics ctrl: {physicsControllers}
+            physics state: awake `{FormatCount(report.Physics.AwakeBodies)}`, contacts `{FormatCount(report.Physics.ActiveContacts)}`, grids `{FormatCount(report.Physics.MovedGrids)}`, buffer `{FormatCount(report.Physics.MoveBuffer)}`, pairs `{FormatCount(report.Physics.NewContactPairs)}`
             """;
     }
 
