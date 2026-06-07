@@ -6,7 +6,7 @@ namespace Idk.Bot.Diagnostics;
 public sealed class MetricsReportRenderer
 {
     private const int Width = 1600;
-    private const int Height = 1560;
+    private const int Height = 1700;
     private const float Margin = 48;
     private const float Gap = 24;
 
@@ -24,9 +24,9 @@ public sealed class MetricsReportRenderer
         DrawChartPanel(canvas, new SKRect(Margin, 634, 760, 962), "Physics phases", RenderBarChart(report.PhysicsPhases, 642, 238, TimedAreaScope.PhysicsPhase));
         DrawChartPanel(canvas, new SKRect(784, 634, Width - Margin, 962), "Physics controllers", RenderBarChart(report.PhysicsControllers, 710, 238, TimedAreaScope.PhysicsController));
 
-        DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, 1328), report);
-        DrawServerPanel(canvas, new SKRect(784, 986, Width - Margin, 1328), report);
-        DrawPhysicsSanityPanel(canvas, new SKRect(Margin, 1352, Width - Margin, Height - Margin), report);
+        DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, 1408), report);
+        DrawServerPanel(canvas, new SKRect(784, 986, Width - Margin, 1408), report);
+        DrawPhysicsSanityPanel(canvas, new SKRect(Margin, 1432, Width - Margin, Height - Margin), report);
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 92);
