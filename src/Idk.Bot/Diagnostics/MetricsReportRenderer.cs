@@ -6,7 +6,7 @@ namespace Idk.Bot.Diagnostics;
 public sealed class MetricsReportRenderer
 {
     private const int Width = 1600;
-    private const int Height = 1508;
+    private const int Height = 1560;
     private const float Margin = 48;
     private const float Gap = 24;
 
@@ -24,8 +24,9 @@ public sealed class MetricsReportRenderer
         DrawChartPanel(canvas, new SKRect(Margin, 634, 760, 962), "Physics phases", RenderBarChart(report.PhysicsPhases, 642, 238, TimedAreaScope.PhysicsPhase));
         DrawChartPanel(canvas, new SKRect(784, 634, Width - Margin, 962), "Physics controllers", RenderBarChart(report.PhysicsControllers, 710, 238, TimedAreaScope.PhysicsController));
 
-        DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, Height - Margin), report);
-        DrawServerPanel(canvas, new SKRect(784, 986, Width - Margin, Height - Margin), report);
+        DrawNetworkPanel(canvas, new SKRect(Margin, 986, 760, 1328), report);
+        DrawServerPanel(canvas, new SKRect(784, 986, Width - Margin, 1328), report);
+        DrawPhysicsSanityPanel(canvas, new SKRect(Margin, 1352, Width - Margin, Height - Margin), report);
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 92);
@@ -117,12 +118,26 @@ public sealed class MetricsReportRenderer
         y += 52;
         DrawMetricRow(canvas, left, y, "new pairs", FormatCount(report.Physics.NewContactPairs), ReportColors.SkHigher(report.Physics.NewContactPairs, 2_000, 8_000));
         DrawMetricRow(canvas, right, y, "NPC steering", FormatCount(report.Gauges.ActiveNpcSteering), ReportColors.SkHigher(report.Gauges.ActiveNpcSteering, 250, 500));
-        y += 52;
-        DrawMetricRow(canvas, left, y, "sanity cand.", FormatCount(report.Physics.SanityCandidates), ReportColors.SkHigher(report.Physics.SanityCandidates, 10, 100));
-        DrawMetricRow(canvas, right, y, "sanity tracked", FormatCount(report.Physics.SanityTrackedBodies), ReportColors.SkHigher(report.Physics.SanityTrackedBodies, 10, 100));
-        y += 52;
-        DrawMetricRow(canvas, left, y, "sanity resolved", FormatCount(report.Physics.SanityResolved), ReportColors.ToSkColor(ReportColors.Info));
-        DrawMetricRow(canvas, right, y, "failed / limit", FormatCountPair(report.Physics.SanityFailedResolve, report.Physics.SanityLimitReached), ReportColors.SkHigher(MaxNullable(report.Physics.SanityFailedResolve, report.Physics.SanityLimitReached), 0, 10));
+    }
+
+    private static void DrawPhysicsSanityPanel(SKCanvas canvas, SKRect rect, MetricsReport report)
+    {
+        DrawRoundRect(canvas, rect, ReportColors.Panel, ReportColors.PanelStroke);
+        DrawText(canvas, "Physics sanity", rect.Left + 24, rect.Top + 34, 20, ReportColors.Text, true);
+
+        var width = (rect.Width - 56) / 5f;
+        var y = rect.Top + 86;
+        var x = rect.Left + 28;
+
+        DrawMetricRow(canvas, x, y, "candidates", FormatCount(report.Physics.SanityCandidates), ReportColors.SkHigher(report.Physics.SanityCandidates, 10, 100));
+        x += width;
+        DrawMetricRow(canvas, x, y, "tracked", FormatCount(report.Physics.SanityTrackedBodies), ReportColors.SkHigher(report.Physics.SanityTrackedBodies, 10, 100));
+        x += width;
+        DrawMetricRow(canvas, x, y, "resolved", FormatCount(report.Physics.SanityResolved), ReportColors.ToSkColor(ReportColors.Info));
+        x += width;
+        DrawMetricRow(canvas, x, y, "failed", FormatCount(report.Physics.SanityFailedResolve), ReportColors.SkHigher(report.Physics.SanityFailedResolve, 0, 10));
+        x += width;
+        DrawMetricRow(canvas, x, y, "limit", FormatCount(report.Physics.SanityLimitReached), ReportColors.SkHigher(report.Physics.SanityLimitReached, 0, 10));
     }
 
     private static void DrawMetricRow(SKCanvas canvas, float x, float y, string label, string value, SKColor accent)
@@ -275,13 +290,6 @@ public sealed class MetricsReportRenderer
         return value == null ? "n/a" : $"{value.Value:0}";
     }
 
-    private static string FormatCountPair(double? left, double? right)
-    {
-        return left == null && right == null
-            ? "n/a"
-            : $"{FormatCount(left)} / {FormatCount(right)}";
-    }
-
     private static string FormatRate(double? value)
     {
         return value == null ? "n/a" : $"{value.Value:0.##}/s";
@@ -309,17 +317,6 @@ public sealed class MetricsReportRenderer
         return text.Length <= maxLength
             ? text
             : text[..(maxLength - 3)] + "...";
-    }
-
-    private static double? MaxNullable(double? left, double? right)
-    {
-        return (left, right) switch
-        {
-            (null, null) => null,
-            (not null, null) => left,
-            (null, not null) => right,
-            _ => Math.Max(left!.Value, right!.Value),
-        };
     }
 
     private enum TimedAreaScope
