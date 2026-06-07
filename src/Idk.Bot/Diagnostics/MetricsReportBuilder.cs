@@ -28,7 +28,7 @@ public sealed class MetricsReportBuilder
             last.CapturedAt,
             BuildServerSummary(first, last, covered, serverAreas),
             BuildGauges(last),
-            BuildPhysics(last),
+            BuildPhysics(first, last),
             BuildNetwork(first, last, covered),
             serverAreas,
             BuildTimedAreas(first, last, covered, "robust_entity_systems_update_usage", "system", 12),
@@ -50,7 +50,7 @@ public sealed class MetricsReportBuilder
             DateTimeOffset.MinValue,
             new MetricsServerSummary(null, null, null, null, null),
             new MetricsGaugeSummary(null, null, null, null, null),
-            new MetricsPhysicsSummary(null, null, null, null, null),
+            new MetricsPhysicsSummary(null, null, null, null, null, null, null, null, null, null),
             new MetricsNetworkSummary(null, null, null, null, null, null, null, null, null),
             [],
             [],
@@ -92,14 +92,19 @@ public sealed class MetricsReportBuilder
             latest.GetValue("npc_steering_active_count"));
     }
 
-    private static MetricsPhysicsSummary BuildPhysics(MetricsSnapshot latest)
+    private static MetricsPhysicsSummary BuildPhysics(MetricsSnapshot first, MetricsSnapshot latest)
     {
         return new MetricsPhysicsSummary(
             latest.GetValue("robust_physics_awake_bodies"),
             latest.GetValue("robust_physics_active_contacts"),
             latest.GetValue("robust_physics_moved_grids"),
             latest.GetValue("robust_physics_move_buffer"),
-            latest.GetValue("robust_physics_new_contact_pairs"));
+            latest.GetValue("robust_physics_new_contact_pairs"),
+            latest.GetValue("physics_sanity_candidates"),
+            latest.GetValue("physics_sanity_tracked_bodies"),
+            CounterDelta(first, latest, "physics_sanity_resolved_count"),
+            CounterDelta(first, latest, "physics_sanity_failed_resolve_count"),
+            CounterDelta(first, latest, "physics_sanity_resolve_limit_reached_count"));
     }
 
     private static MetricsNetworkSummary BuildNetwork(MetricsSnapshot first, MetricsSnapshot last, TimeSpan covered)
@@ -316,13 +321,18 @@ public sealed class MetricsReportBuilder
 
     private static double? CounterRate(MetricsSnapshot first, MetricsSnapshot last, TimeSpan covered, string name)
     {
+        var delta = CounterDelta(first, last, name);
+        return delta == null ? null : delta.Value / covered.TotalSeconds;
+    }
+
+    private static double? CounterDelta(MetricsSnapshot first, MetricsSnapshot last, string name)
+    {
         var firstValue = first.GetValue(name);
         var lastValue = last.GetValue(name);
         if (firstValue == null || lastValue == null)
             return null;
 
-        var delta = CounterDelta(firstValue.Value, lastValue.Value);
-        return delta == null ? null : delta.Value / covered.TotalSeconds;
+        return CounterDelta(firstValue.Value, lastValue.Value);
     }
 
     private static double? CounterDelta(double first, double last)

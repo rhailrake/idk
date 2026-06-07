@@ -38,7 +38,12 @@ public sealed record MetricsPhysicsSummary(
     double? ActiveContacts,
     double? MovedGrids,
     double? MoveBuffer,
-    double? NewContactPairs);
+    double? NewContactPairs,
+    double? SanityCandidates,
+    double? SanityTrackedBodies,
+    double? SanityResolved,
+    double? SanityFailedResolve,
+    double? SanityLimitReached);
 
 public sealed record MetricsNetworkSummary(
     double? SentBytesPerSecond,

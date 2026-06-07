@@ -106,6 +106,7 @@ public sealed class MetricsCommandHandler(
             physics phases: {physicsPhases}
             physics ctrl: {physicsControllers}
             physics state: awake `{FormatCount(report.Physics.AwakeBodies)}`, contacts `{FormatCount(report.Physics.ActiveContacts)}`, grids `{FormatCount(report.Physics.MovedGrids)}`, buffer `{FormatCount(report.Physics.MoveBuffer)}`, pairs `{FormatCount(report.Physics.NewContactPairs)}`
+            physics sanity: candidates `{FormatCount(report.Physics.SanityCandidates)}`, tracked `{FormatCount(report.Physics.SanityTrackedBodies)}`, resolved `{FormatCount(report.Physics.SanityResolved)}`, failed `{FormatCount(report.Physics.SanityFailedResolve)}`, limit `{FormatCount(report.Physics.SanityLimitReached)}`
             """;
     }
 
