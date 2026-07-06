@@ -37,6 +37,7 @@ public static class HostApplicationBuilderExtensions
         services.AddSingleton<IMetricsService>(provider => provider.GetRequiredService<MetricsService>());
         services.AddHostedService(provider => provider.GetRequiredService<MetricsService>());
         services.AddSingleton<IPhysicsDiagnosticsService, PhysicsDiagnosticsService>();
+        services.AddSingleton<ICrashReportService, CrashReportService>();
         services.AddSingleton<ITraceArchiveStore, TraceArchiveStore>();
         services.AddSingleton<ITraceAnalysisService, TraceAnalysisService>();
         services.AddSingleton<ITraceCleanupService, TraceCleanupService>();
@@ -49,9 +50,11 @@ public static class HostApplicationBuilderExtensions
         services.AddSingleton<PerfCommandHandler>();
         services.AddSingleton<MetricsCommandHandler>();
         services.AddSingleton<PhysicsCommandHandler>();
+        services.AddSingleton<CrashCommandHandler>();
         services.AddSingleton<BotCommandHandler>();
         services.AddSingleton<TraceArchiveResponder>();
         services.AddSingleton<TraceAnalysisResponder>();
+        services.AddSingleton<CrashReportResponder>();
         services.AddSingleton<SlashCommandDispatcher>();
         services.AddSingleton<SlashCommandRegistrar>();
         services.AddSingleton(DiscordClientFactory.Create());

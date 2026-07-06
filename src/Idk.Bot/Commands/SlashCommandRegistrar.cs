@@ -22,6 +22,7 @@ public sealed class SlashCommandRegistrar(
             BuildPerfCommand(),
             BuildMetricsCommand(),
             BuildPhysicsCommand(),
+            BuildCrashCommand(),
             BuildBotCommand(),
         };
 
@@ -182,6 +183,32 @@ public sealed class SlashCommandRegistrar(
             .WithName("physics")
             .WithDescription("Physics diagnostics")
             .AddOption(diagSubCommand)
+            .Build();
+    }
+
+    private SlashCommandProperties BuildCrashCommand()
+    {
+        var serverOption = new SlashCommandOptionBuilder()
+            .WithName("server")
+            .WithDescription("Server")
+            .WithType(ApplicationCommandOptionType.String)
+            .WithRequired(true);
+
+        foreach (var server in serverRegistry.Servers.OrderBy(server => server.Id))
+        {
+            serverOption.AddChoice(server.DisplayName, server.Id);
+        }
+
+        var latestSubCommand = new SlashCommandOptionBuilder()
+            .WithName("latest")
+            .WithDescription("Get latest managed crash report")
+            .WithType(ApplicationCommandOptionType.SubCommand)
+            .AddOption(serverOption);
+
+        return new SlashCommandBuilder()
+            .WithName("crash")
+            .WithDescription("Server crash reports")
+            .AddOption(latestSubCommand)
             .Build();
     }
 
